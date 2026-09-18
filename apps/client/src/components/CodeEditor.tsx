@@ -4,15 +4,17 @@ import { useEffect, useRef } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { socket } from '@/lib/socket';
 
-const ROOM_ID = 'test-room';
+type CodeEditorProps = {
+  roomId: string;
+};
 
-export default function CodeEditor() {
+export default function CodeEditor({ roomId }: CodeEditorProps) {
   const isRemoteChange = useRef(false);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
   useEffect(() => {
     socket.connect();
-    socket.emit('join-room', ROOM_ID);
+    socket.emit('join-room', roomId);
 
     socket.on('code-change', (code: string) => {
       const editor = editorRef.current;
@@ -26,7 +28,7 @@ export default function CodeEditor() {
       socket.off('code-change');
       socket.disconnect();
     };
-  }, []);
+  }, [roomId]);
 
   const handleMount: OnMount = editor => {
     editorRef.current = editor;
@@ -37,7 +39,7 @@ export default function CodeEditor() {
       isRemoteChange.current = false;
       return;
     }
-    socket.emit('code-change', { roomId: ROOM_ID, code: value ?? '' });
+    socket.emit('code-change', { roomId, code: value ?? '' });
   };
 
   return (
