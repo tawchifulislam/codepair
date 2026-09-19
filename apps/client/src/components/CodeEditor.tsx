@@ -16,6 +16,50 @@ type CodeEditorProps = {
   roomId: string;
 };
 
+const STYLE_ID = 'yjs-awareness-styles';
+
+function updateAwarenessStyles(awareness: Awareness) {
+  let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+
+  const rules: string[] = [];
+  awareness.getStates().forEach((state, clientId) => {
+    if (clientId === awareness.clientID) return;
+    const user = state.user as { name: string; color: string } | undefined;
+    if (!user) return;
+
+    rules.push(`
+      .yRemoteSelection-${clientId} {
+        background-color: ${user.color}55;
+      }
+      .yRemoteSelectionHead-${clientId} {
+        position: absolute;
+        border-left: 2px solid ${user.color};
+      }
+      .yRemoteSelectionHead-${clientId}::after {
+        content: "${user.name}";
+        position: absolute;
+        top: -1.1em;
+        left: -2px;
+        font-size: 10px;
+        line-height: 1.2;
+        background-color: ${user.color};
+        color: #000;
+        padding: 0 4px;
+        border-radius: 2px;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+    `);
+  });
+
+  styleEl.textContent = rules.join('\n');
+}
+
 export default function CodeEditor({ roomId }: CodeEditorProps) {
   const docRef = useRef<Y.Doc | null>(null);
   const awarenessRef = useRef<Awareness | null>(null);
@@ -49,6 +93,7 @@ export default function CodeEditor({ roomId }: CodeEditorProps) {
       socket.emit('awareness-update', { roomId, update });
     };
     awareness.on('update', handleAwarenessUpdate);
+    awareness.on('change', () => updateAwarenessStyles(awareness));
 
     socket.on('sync-init', (state: Uint8Array) => {
       Y.applyUpdate(doc, new Uint8Array(state), 'remote');
@@ -70,11 +115,11 @@ export default function CodeEditor({ roomId }: CodeEditorProps) {
       socket.off('sync-update');
       socket.off('awareness-update');
       doc.off('update', handleLocalUpdate);
-      awareness.off('update', handleAwarenessUpdate);
+      awareness.destroy();
       socket.disconnect();
       bindingRef.current?.destroy();
-      awareness.destroy();
       doc.destroy();
+      document.getElementById(STYLE_ID)?.remove();
     };
   }, [roomId]);
 
