@@ -1,4 +1,4 @@
-import CodeEditor from '@/components/CodeEditor';
+import CodeEditorLoader from '@/components/CodeEditorLoader';
 
 export default async function RoomPage({
   params,
@@ -6,5 +6,5 @@ export default async function RoomPage({
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = await params;
-  return <CodeEditor roomId={roomId} />;
+  return <CodeEditorLoader roomId={roomId} />;
 }
